@@ -83,6 +83,8 @@
   .lword{display:inline-block;padding:0 12px;border:2.5px solid var(--green);background:var(--green-bg);color:#17683a;font-weight:bold;border-radius:10px;animation:pop .45s}
   .lword::after{content:" ✓"}
   .lrow.done .cbtn{display:none}
+  .lrow.locked{opacity:.55}
+  .lockmsg{color:#7a8794;font-style:italic;font-family:inherit!important;font-size:1rem!important}
   .cbtn{padding:6px 14px}
   .bigplay{font-size:1.1rem;padding:10px 22px}
   /* finish overlay */
@@ -146,7 +148,7 @@
   <!-- listening -->
   <div class="card hide" id="listenCard">
     <h2 class="ptitle" id="ltitle"></h2>
-    <p style="margin:0 0 10px">🎧 Écoute le dialogue entre <b>Camille</b> et <b>Yanis</b>. Puis, pour chaque phrase, appuie sur 🔊 (🐢 = lent) et écris le mot qui manque. Appuie sur <b>Entrée</b> pour vérifier.</p>
+    <p style="margin:0 0 10px">🎧 Écoute le dialogue entre <b>Camille</b> et <b>Yanis</b>. Puis, pour chaque phrase, appuie sur 🔊 (🐢 = lent) et écris le mot qui manque. Appuie sur <b>Entrée</b> pour vérifier. <b>La phrase suivante s’ouvre quand ta réponse est correcte !</b></p>
     <button class="btn bigplay" id="playAll">▶ Écouter tout le dialogue</button>
     <div class="accents" id="accents" aria-label="Lettres avec accent"></div>
     <div id="lrows"></div>
@@ -424,24 +426,35 @@
     $('ltitle').textContent=A.title;
     const box=$('lrows');box.innerHTML='';inputs=[];lastInput=null;
     A.items.forEach((it,i)=>{
-      const m=it.s.match(/^(.*)\{(.+)\}(.*)$/);const pre=m[1],ans=m[2],post=m[3];it.ans=ans;it.full=pre+ans+post;
-      const num=String(i+1).padStart(2,'0');
-      const row=document.createElement('div');row.className='lrow';row.id='lr'+i;
-      row.innerHTML='<span class="lnum">'+(i+1)+'.</span><span class="who">'+it.who+'</span>'+
-        '<span><button type="button" class="pbtn p1" aria-label="Écouter la phrase '+(i+1)+'">🔊</button> <button type="button" class="pbtn p2" aria-label="Écouter lentement la phrase '+(i+1)+'">🐢</button></span>'+
-        '<span class="ltext"></span><button type="button" class="btn cbtn">Vérifier</button>';
-      const lt=row.querySelector('.ltext');
-      const inp=document.createElement('input');inp.type='text';inp.className='lin';inp.size=Math.max(7,ans.length+2);
-      inp.autocomplete='off';inp.autocapitalize='off';inp.spellcheck=false;inp.setAttribute('aria-label','mot manquant '+(i+1));
-      lt.appendChild(document.createTextNode(pre));lt.appendChild(inp);lt.appendChild(document.createTextNode(post));
-      row.querySelector('.p1').onclick=function(){play('audio/s'+num+'.mp3',this,it.full,.9)};
-      row.querySelector('.p2').onclick=function(){play('audio/s'+num+'_slow.mp3',this,it.full,.65)};
-      const chk=()=>checkL(i);
-      row.querySelector('.cbtn').onclick=chk;
-      inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chk();}});
-      inp.addEventListener('focus',()=>{lastInput=inp});
-      inputs[i]=inp;box.appendChild(row);
+      const m=it.s.match(/^(.*)\{(.+)\}(.*)$/);it.pre=m[1];it.ans=m[2];it.post=m[3];it.full=it.pre+it.ans+it.post;
+      const row=document.createElement('div');row.className='lrow locked';row.id='lr'+i;
+      row.innerHTML='<span class="lnum">'+(i+1)+'.</span><span class="who">'+it.who+'</span><span class="ltext lockmsg">🔒 Réponds d’abord à la phrase précédente…</span>';
+      box.appendChild(row);
     });
+    openRow(0,false);
+  }
+  // sentences open one by one: the next one appears only after the previous answer is correct
+  function openRow(i,auto){
+    const it=A.items[i],row=$('lr'+i),num=String(i+1).padStart(2,'0');
+    row.classList.remove('locked');
+    row.innerHTML='<span class="lnum">'+(i+1)+'.</span><span class="who">'+it.who+'</span>'+
+      '<span><button type="button" class="pbtn p1" aria-label="Écouter la phrase '+(i+1)+'">🔊</button> <button type="button" class="pbtn p2" aria-label="Écouter lentement la phrase '+(i+1)+'">🐢</button></span>'+
+      '<span class="ltext"></span><button type="button" class="btn cbtn">Vérifier</button>';
+    const lt=row.querySelector('.ltext');
+    const inp=document.createElement('input');inp.type='text';inp.className='lin';inp.size=Math.max(7,it.ans.length+2);
+    inp.autocomplete='off';inp.autocapitalize='off';inp.spellcheck=false;inp.setAttribute('aria-label','mot manquant '+(i+1));
+    lt.appendChild(document.createTextNode(it.pre));lt.appendChild(inp);lt.appendChild(document.createTextNode(it.post));
+    row.querySelector('.p1').onclick=function(){play('audio/s'+num+'.mp3',this,it.full,.9)};
+    row.querySelector('.p2').onclick=function(){play('audio/s'+num+'_slow.mp3',this,it.full,.65)};
+    const chk=()=>checkL(i);
+    row.querySelector('.cbtn').onclick=chk;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();chk();}});
+    inp.addEventListener('focus',()=>{lastInput=inp});
+    inputs[i]=inp;
+    if(auto){
+      row.scrollIntoView({behavior:'smooth',block:'center'});
+      setTimeout(()=>{inp.focus({preventScroll:true});const b=row.querySelector('.p1');if(b&&!row.classList.contains('done'))b.click();},700);
+    }
   }
   $('playAll').onclick=function(){play('audio/full.mp3',this,ACTS[3].items.map(i=>i.full).join(' '),.9);this.textContent=this.classList.contains('playing')?'■ Arrêter':'▶ Écouter tout le dialogue';};
   function checkL(i){
@@ -455,7 +468,7 @@
       inp.replaceWith(lw);row.classList.add('done');
       if(exact)cheer(gain);
       else{sOk();say('✓ Bien entendu ! Attention à l’accent : « '+it.ans+' »  +'+gain,'good');update();if(done===N)setTimeout(finish,900);}
-      const nx=solved.findIndex(s=>!s);if(nx>=0&&inputs[nx])inputs[nx].focus();
+      if(i+1<N)openRow(i+1,true);
     }else{
       tries[i]++;streak=0;inp.classList.add('no');inp.disabled=true;
       sNo();say(BAD[Math.floor(Math.random()*BAD.length)],'bad');update();

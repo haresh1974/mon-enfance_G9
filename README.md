@@ -1,9 +1,10 @@
-# Mon enfance – Yanis raconte son enfance
+# Mon enfance – L'imparfait
 
-Interactive gap-fill activity (imparfait) for Grade 9/10 – *Learn French with Haresh Sir*.
+Interactive gap-fill activities (imparfait) – *Learn French with Haresh Sir*.
 
-Open `index.html` in any browser, or enable GitHub Pages (Settings → Pages → Deploy from branch → `main` / root) to share a link with students.
+- Two texts: **Yanis** (first person) and **Camille** (third person, different flow)
+- Name box; records and scores are saved per student name in the browser
+- Green ✓ = correct, red ✗ = try again; points, streak bonus, hints after two mistakes
+- Final score out of 20, stars and confetti
 
-- Tap (or drag) a word from the box onto a gap
-- Green ✓ = correct, red ✗ = try again
-- Points, streak bonus, hints after two mistakes, stars and confetti at the end
+Open `index.html`, or enable GitHub Pages (Settings → Pages → `main` / root) to share a link.
